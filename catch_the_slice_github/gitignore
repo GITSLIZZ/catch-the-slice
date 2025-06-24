@@ -1,0 +1,11 @@
+
+# Ignore macOS system files
+.DS_Store
+
+# Ignore hidden system/IDE folders
+.idea/
+.vscode/
+
+# Node and build (just in case)
+node_modules/
+dist/

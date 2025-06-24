@@ -1,0 +1,145 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Catch the Slice</title>
+    <style>
+        body { margin: 0; background: #111; color: white; text-align: center; font-family: sans-serif; }
+        canvas { display: block; margin: 0 auto; touch-action: none; }
+    </style>
+</head>
+<body>
+<canvas id="gameCanvas" width="400" height="600"></canvas>
+
+<script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let player = { x: 120, y: 420, width: 160, height: 160, speed: 10 };
+    let pizzas = [];
+    let score = 0;
+    let gameTime = 10;
+    let startTime = null;
+    let gameRunning = false;
+    let direction = 'right';
+    let countdown = 3;
+
+    const pizzaImg = new Image();
+    pizzaImg.src = "pizza_slice_transparent.png";
+
+    const skaterImg = new Image();
+    skaterImg.src = "skater_sprite_160x160.png";
+
+    const backgroundImg = new Image();
+    backgroundImg.src = "birdseye_background_400x600.png";
+
+    function spawnPizza() {
+        const x = Math.random() * (canvas.width - 80);
+        pizzas.push({ x: x, y: 0, width: 80, height: 80, speed: 3 + Math.random() * 2 });
+    }
+
+    function drawSkater() {
+        ctx.save();
+        if (direction === 'left') {
+            ctx.translate(player.x + player.width, player.y);
+            ctx.scale(-1, 1);
+            ctx.drawImage(skaterImg, 0, 0, player.width, player.height);
+        } else {
+            ctx.drawImage(skaterImg, player.x, player.y, player.width, player.height);
+        }
+        ctx.restore();
+    }
+
+    function updateGame(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const elapsed = (timestamp - startTime) / 1000;
+
+        if (elapsed >= gameTime) {
+            gameRunning = false;
+            ctx.fillStyle = "#fff";
+            ctx.font = "28px Arial";
+            const message = score >= 10 ? "YOU WIN! 🍕" : "GAME OVER";
+            ctx.fillText(message + " Score: " + score, 40, 300);
+            return;
+        }
+
+        ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
+        drawSkater();
+
+        for (let i = 0; i < pizzas.length; i++) {
+            let p = pizzas[i];
+            p.y += p.speed;
+            ctx.drawImage(pizzaImg, p.x, p.y, p.width, p.height);
+
+            if (p.y + p.height > player.y &&
+                p.x < player.x + player.width &&
+                p.x + p.width > player.x) {
+                pizzas.splice(i, 1);
+                score++;
+                i--;
+            } else if (p.y > canvas.height) {
+                pizzas.splice(i, 1);
+                i--;
+            }
+        }
+
+        ctx.fillStyle = "#fff";
+        ctx.font = "20px Arial";
+        ctx.fillText("Score: " + score, 10, 30);
+        ctx.fillText("Time: " + (gameTime - Math.floor(elapsed)), 320, 30);
+
+        if (gameRunning) {
+            requestAnimationFrame(updateGame);
+        }
+    }
+
+    function gameLoop() {
+        gameRunning = true;
+        requestAnimationFrame(updateGame);
+        setInterval(spawnPizza, 500);
+    }
+
+    function drawCountdown() {
+        ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#fff";
+        ctx.font = "60px Arial";
+        if (countdown > 0) {
+            ctx.fillText(countdown, 180, 300);
+            countdown--;
+            setTimeout(drawCountdown, 1000);
+        } else {
+            ctx.fillText("PIZZA!", 100, 300);
+            setTimeout(() => {
+                gameLoop();
+            }, 1000);
+        }
+    }
+
+    let lastTouchX = null;
+
+    canvas.addEventListener("touchstart", function (e) {
+        lastTouchX = e.touches[0].clientX;
+    }, false);
+
+    canvas.addEventListener("touchmove", function (e) {
+        const touchX = e.touches[0].clientX;
+        const deltaX = touchX - lastTouchX;
+        if (Math.abs(deltaX) > 5) {
+            if (deltaX > 0 && player.x + player.width < canvas.width) {
+                player.x += player.speed;
+                direction = 'right';
+            } else if (deltaX < 0 && player.x > 0) {
+                player.x -= player.speed;
+                direction = 'left';
+            }
+            lastTouchX = touchX;
+        }
+    }, false);
+
+    pizzaImg.onload = () => {
+        drawCountdown();
+    };
+</script>
+</body>
+</html>
